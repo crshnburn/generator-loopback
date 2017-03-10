@@ -51,11 +51,6 @@ module.exports = yeoman.Base.extend({
       desc: g.f('Set up as a Bluemix app'),
       type: Boolean,
     });
-
-    this.option('init-bluemix', {
-      desc: g.f('Convert an existing into a Bluemix app'),
-      type: Boolean,
-    });
   },
 
   greet: function() {
@@ -80,212 +75,172 @@ module.exports = yeoman.Base.extend({
     return msgs.join('') + '\n';
   },
 
-  validateLoopBackDir: function() {
-    if (this.options.initBluemix) {
-      if (!fs.existsSync(path.join(process.cwd(), 'package.json')) ||
-          !fs.existsSync(path.join(process.cwd(), 'server', 'server.js'))) {
-        console.log(chalk.red(' Invalid LoopBack directory\n'));
-        process.exit();
-      }
-    }
-  },
-
   injectWorkspaceCopyRecursive: function() {
-    if (!this.options.initBluemix) {
-      var originalMethod = Workspace.copyRecursive;
-      Workspace.copyRecursive = function(src, dest, cb) {
-        var isDir = fs.statSync(src).isDirectory();
-        if (isDir) {
-          this.directory(src, dest);
-        } else {
-          this.copy(src, dest);
-        }
-        return cb && process.nextTick(cb);
-      }.bind(this);
+    var originalMethod = Workspace.copyRecursive;
+    Workspace.copyRecursive = function(src, dest, cb) {
+      var isDir = fs.statSync(src).isDirectory();
+      if (isDir) {
+        this.directory(src, dest);
+      } else {
+        this.copy(src, dest);
+      }
+      return cb && process.nextTick(cb);
+    }.bind(this);
 
-      // Restore the original method when done
-      this.on('end', function() {
-        Workspace.copyRecursive = originalMethod;
-      });
-    }
+    // Restore the original method when done
+    this.on('end', function() {
+      Workspace.copyRecursive = originalMethod;
+    });
   },
 
   loadTemplates: function() {
-    if (!this.options.initBluemix) {
-      var done = this.async();
+    var done = this.async();
 
-      Workspace.describeAvailableTemplates(function(err, list) {
-        if (err) return done(err);
-        this.templates = list.map(function(t) {
-          return {
-            name: g.f('%s (%s)', t.name, t.description),
-            value: t.name,
-            supportedLBVersions: t.supportedLBVersions,
-          };
+    Workspace.describeAvailableTemplates(function(err, list) {
+      if (err) return done(err);
+      this.templates = list.map(function(t) {
+        return {
+          name: g.f('%s (%s)', t.name, t.description),
+          value: t.name,
+          supportedLBVersions: t.supportedLBVersions,
+        };
+      });
+
+      // TODO(bajtos) generator-loopback should not be coupled with APIC
+      // See also https://github.com/strongloop/generator-loopback/issues/139
+      if (helpers.getCommandName() === 'apic') {
+        this.defaultTemplate = 'hello-world';
+        this.templates = this.templates.filter(function(t) {
+          return t.value !== 'api-server';
         });
-
-        // TODO(bajtos) generator-loopback should not be coupled with APIC
-        // See also https://github.com/strongloop/generator-loopback/issues/139
-        if (helpers.getCommandName() === 'apic') {
-          this.defaultTemplate = 'hello-world';
-          this.templates = this.templates.filter(function(t) {
-            return t.value !== 'api-server';
-          });
-        } else {
-          this.defaultTemplate = 'api-server';
-        }
-        done();
-      }.bind(this));
-    }
+      } else {
+        this.defaultTemplate = 'api-server';
+      }
+      done();
+    }.bind(this));
   },
 
   askForProjectName: function() {
-    if (!this.options.initBluemix) {
-      if (this.options.nested && this.name) {
-        this.appname = this.name;
-        return;
-      }
-
-      // https://github.com/strongloop/generator-loopback/issues/38
-      // yeoman-generator normalize the appname with ' '
-      this.appname =
-        path.basename(process.cwd()).replace(/[\/@\s\+%:\.]+?/g, '-');
-
-      var name = this.name || this.dir || this.appname;
-
-      var prompts = [
-        {
-          name: 'appname',
-          message: g.f('What\'s the name of your application?'),
-          default: name,
-          validate: validateAppName,
-        },
-      ];
-
-      return this.prompt(prompts).then(function(props) {
-        this.appname = props.appname || this.appname;
-      }.bind(this));
+    if (this.options.nested && this.name) {
+      this.appname = this.name;
+      return;
     }
+
+    // https://github.com/strongloop/generator-loopback/issues/38
+    // yeoman-generator normalize the appname with ' '
+    this.appname =
+      path.basename(process.cwd()).replace(/[\/@\s\+%:\.]+?/g, '-');
+
+    var name = this.name || this.dir || this.appname;
+
+    var prompts = [
+      {
+        name: 'appname',
+        message: g.f('What\'s the name of your application?'),
+        default: name,
+        validate: validateAppName,
+      },
+    ];
+
+    return this.prompt(prompts).then(function(props) {
+      this.appname = props.appname || this.appname;
+    }.bind(this));
   },
 
-  configureDestinationDir: function() {
-    if (!this.options.initBluemix) {
-      actions.configureDestinationDir.call(this);
-    }
-  },
+  configureDestinationDir: actions.configureDestinationDir,
 
   fetchLoopBackVersions: function() {
-    if (!this.options.initBluemix) {
-      var done = this.async();
-      var self = this;
-      Workspace.getAvailableLBVersions(function(err, versionsMap) {
-        if (err) return done(err);
-        var versionNames = Object.keys(versionsMap);
-        self.availableLBVersions = versionNames.map(function(version) {
-          return {
-            name: version + ' (' + versionsMap[version].description + ')',
-            value: version,
-          };
-        });
-        done();
+    var done = this.async();
+    var self = this;
+    Workspace.getAvailableLBVersions(function(err, versionsMap) {
+      if (err) return done(err);
+      var versionNames = Object.keys(versionsMap);
+      self.availableLBVersions = versionNames.map(function(version) {
+        return {
+          name: version + ' (' + versionsMap[version].description + ')',
+          value: version,
+        };
       });
-    }
+      done();
+    });
   },
 
   askForLBVersion: function() {
-    if (!this.options.initBluemix) {
-      var prompts = [{
-        name: 'loopbackVersion',
-        message: g.f('Which version of {{LoopBack}} would you like to use?'),
-        type: 'list',
-        default: '3.x',
-        choices: this.availableLBVersions,
-      }];
+    var prompts = [{
+      name: 'loopbackVersion',
+      message: g.f('Which version of {{LoopBack}} would you like to use?'),
+      type: 'list',
+      default: '3.x',
+      choices: this.availableLBVersions,
+    }];
 
-      var self = this;
-      return this.prompt(prompts).then(function(answers) {
-        self.options.loopbackVersion = answers.loopbackVersion;
-      }.bind(this));
-    }
+    var self = this;
+    return this.prompt(prompts).then(function(answers) {
+      self.options.loopbackVersion = answers.loopbackVersion;
+    }.bind(this));
   },
 
   applyFilterOnTemplate: function() {
-    if (!this.options.initBluemix) {
-      var LBVersion = this.options.loopbackVersion;
-      var templates = this.templates;
+    var LBVersion = this.options.loopbackVersion;
+    var templates = this.templates;
 
-      this.templates = templates.filter(function(t) {
-        return t.supportedLBVersions.indexOf(LBVersion) !== -1;
-      });
-    }
+    this.templates = templates.filter(function(t) {
+      return t.supportedLBVersions.indexOf(LBVersion) !== -1;
+    });
   },
 
   askForTemplate: function() {
-    if (!this.options.initBluemix) {
-      var prompts = [{
-        name: 'wsTemplate',
-        message: g.f('What kind of application do you have in mind?'),
-        type: 'list',
-        default: this.defaultTemplate,
-        choices: this.templates,
-      }];
+    var prompts = [{
+      name: 'wsTemplate',
+      message: g.f('What kind of application do you have in mind?'),
+      type: 'list',
+      default: this.defaultTemplate,
+      choices: this.templates,
+    }];
 
-      var self = this;
-      return this.prompt(prompts).then(function(answers) {
-        // Do NOT use name template as it's a method in the base class
-        self.wsTemplate = answers.wsTemplate;
-      }.bind(this));
-    }
+    var self = this;
+    return this.prompt(prompts).then(function(answers) {
+      // Do NOT use name template as it's a method in the base class
+      self.wsTemplate = answers.wsTemplate;
+    }.bind(this));
   },
 
-  initWorkspace: function() {
-    if (!this.options.initBluemix) {
-      actions.initWorkspace.call(this);
-    }
-  },
+  initWorkspace: actions.initWorkspace,
 
   detectExistingProject: function() {
-    if (!this.options.initBluemix) {
-      var cb = this.async();
-      Workspace.isValidDir(function(err) {
-        if (err) {
-          cb();
-        } else {
-          cb(new Error(
-            g.f('The generator must be run in an empty directory.'))
-          );
-        }
-      });
-    }
+    var cb = this.async();
+    Workspace.isValidDir(function(err) {
+      if (err) {
+        cb();
+      } else {
+        cb(new Error(
+          g.f('The generator must be run in an empty directory.'))
+        );
+      }
+    });
   },
 
   project: function() {
-    if (!this.options.initBluemix) {
-      var done = this.async();
+    var done = this.async();
 
-      Workspace.createFromTemplate(
-        this.wsTemplate,
-        this.appname,
-        {
-          'loopbackVersion': this.options.loopbackVersion,
-          'loopback-component-explorer': this.options.explorer !== false,
-        },
-        done
-      );
-    }
+    Workspace.createFromTemplate(
+      this.wsTemplate,
+      this.appname,
+      {
+        'loopbackVersion': this.options.loopbackVersion,
+        'loopback-component-explorer': this.options.explorer !== false,
+      },
+      done
+    );
   },
 
   copyFiles: function() {
-    if (!this.options.initBluemix) {
       this.directory('.', '.');
-    }
   },
 
   promptBluemixSettings: function() {
-    if (this.options.bluemix || this.options.initBluemix) {
-      if (!this.options.initBluemix) {
+    if (this.options.bluemix) {
         this.log(g.f('\n  Bluemix configurations:\n'));
-      }
 
       // https://github.com/strongloop/generator-loopback/issues/38
       // yeoman-generator normalize the appname with ' '
@@ -337,7 +292,7 @@ module.exports = yeoman.Base.extend({
   },
 
   generateBluemixFiles: function() {
-    if (this.options.bluemix || this.options.initBluemix) {
+    if (this.options.bluemix) {
       var options = {
         bluemix: true,
         destDir: this.destinationRoot(),
@@ -349,7 +304,7 @@ module.exports = yeoman.Base.extend({
   },
 
   promptDefaultServices: function() {
-    if (this.options.bluemix || this.options.initBluemix) {
+    if (this.options.bluemix) {
       var prompts = [
         {
           name: 'enableAutoScaling',
@@ -387,7 +342,7 @@ module.exports = yeoman.Base.extend({
   },
   end: {
     addDefaultServices: function() {
-      if (this.options.bluemix || this.options.initBluemix) {
+      if (this.options.bluemix) {
         var options = {
           bluemix: true,
           enableAutoScaling: this.enableAutoScaling,

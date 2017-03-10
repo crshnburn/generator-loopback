@@ -1,0 +1,5 @@
+Description:
+  `toolchain`, `manifest`, and `docker` are scaffold options. Not specifying any of them is interpreted as
+  specifying all of them.
+
+  Specify the `datasource` option to add a datasource which is already provisioned on Bluemix.
