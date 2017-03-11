@@ -1,0 +1,18 @@
+Usage:
+  slc loopback:bluemix [options]
+
+Options:
+  -h,   --help          # Print the generator's options and usage
+        --skip-cache    # Do not remember prompt answers             Default: false
+        --skip-install  # Do not automatically install dependencies  Default: false
+        --toolchain     # Set up Bluemix toolchain
+        --docker        # Generate Dockerfile
+        --manifest      # Generate Bluemix manifest file
+        --datasource    # Add Bluemix data-source
+        --service       # Add Bluemix service
+
+Description:
+  `toolchain`, `manifest`, and `docker` are scaffold options. Not specifying any of them is interpreted as
+  specifying all of them.
+
+  Specify the `datasource` option to add a datasource which is already provisioned on Bluemix.

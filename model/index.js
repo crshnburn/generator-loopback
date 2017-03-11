@@ -16,9 +16,11 @@ var helpers = require('../lib/helpers');
 var helpText = require('../lib/help');
 var validateRequiredName = helpers.validateRequiredName;
 var validateOptionalName = helpers.validateOptionalName;
-var datasourcesConfig = require(path.resolve(process.cwd(),
-                        '.bluemix', 'datasources-config.json'));
-var bluemixDataSourcesList = datasourcesConfig.datasources;
+if (process.argv.indexOf('--bluemix') > 0) {
+  var datasourcesConfig = require(path.resolve(process.cwd(),
+                          '.bluemix', 'datasources-config.json'));
+  var bluemixDataSourcesList = datasourcesConfig.datasources;
+}
 
 module.exports = yeoman.Base.extend({
   // NOTE(bajtos)
