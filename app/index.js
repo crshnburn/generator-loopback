@@ -12,9 +12,8 @@ var yosay = require('yosay');
 var chalk = require('chalk');
 var workspace = require('loopback-workspace');
 var Workspace = workspace.models.Workspace;
-
+var bluemix = require('../lib/bluemix');
 var fs = require('fs');
-
 var actions = require('../lib/actions');
 var helpers = require('../lib/helpers');
 var helpText = require('../lib/help');
@@ -235,96 +234,30 @@ module.exports = yeoman.Base.extend({
   },
 
   copyFiles: function() {
-      this.directory('.', '.');
+    this.directory('.', '.');
+  },
+
+  configurePrompt: function() {
+    if (this.options.bluemix) {
+      bluemix.configurePrompt.call(this);
+    }
   },
 
   promptBluemixSettings: function() {
     if (this.options.bluemix) {
-        this.log(g.f('\n  Bluemix configurations:\n'));
-
-      // https://github.com/strongloop/generator-loopback/issues/38
-      // yeoman-generator normalize the appname with ' '
-      this.appName =
-        path.basename(process.cwd()).replace(/[\/@\s\+%:\.]+?/g, '-');
-
-      var prompts = [
-        {
-          name: 'appMemory',
-          message: g.f('How much memory to allocate for the app?'),
-          default: 256,
-          validate: helpers.validateAppMemory,
-        },
-        {
-          name: 'appInstances',
-          message: g.f('How many instances of app to run?'),
-          default: 1,
-          validate: helpers.validateAppInstances,
-        },
-        {
-          name: 'appDomain',
-          message: g.f('What is the domain name of the app?'),
-          default: 'mybluemix.net',
-          validate: helpers.validateAppDomain,
-        },
-        {
-          name: 'appHost',
-          message: g.f('What is the subdomain of the app?'),
-          default: this.appName,
-          validate: helpers.validateAppHost,
-        },
-        {
-          name: 'appDiskQuota',
-          message: g.f('How much disk space to allocate for the app?'),
-          default: 1024,
-          validate: helpers.validateAppDiskQuota,
-        },
-      ];
-
-      var self = this;
-      return this.prompt(prompts).then(function(answers) {
-        self.appMemory = answers.appMemory;
-        self.appInstances = answers.appInstances;
-        self.appDomain = answers.appDomain;
-        self.appHost = answers.appHost;
-        self.appDiskQuota = answers.appDiskQuota;
-      }.bind(this));
+      bluemix.promptSettings.call(this);
     }
   },
 
   generateBluemixFiles: function() {
     if (this.options.bluemix) {
-      var options = {
-        bluemix: true,
-        destDir: this.destinationRoot(),
-      };
-      Workspace.generateBluemixFiles(options,
-                                    this.copy.bind(this),
-                                    this.directory.bind(this));
+      bluemix.generateFiles.call(this);
     }
   },
 
   promptDefaultServices: function() {
     if (this.options.bluemix) {
-      var prompts = [
-        {
-          name: 'enableAutoScaling',
-          message: g.f('Do you want to enable autoscaling?'),
-          default: 'no',
-          validate: helpers.validateYesNo,
-        },
-        {
-          name: 'enableAppMetrics',
-          message: g.f('Do you want to enable appmetrics?'),
-          default: 'no',
-          validate: helpers.validateYesNo,
-        },
-      ];
-
-      var self = this;
-      return this.prompt(prompts).then(function(answers) {
-        self.enableAutoScaling = answers.enableAutoScaling;
-        self.enableAppMetrics = answers.enableAppMetrics;
-      }.bind(this));
+      bluemix.promptDefaultServices.call(this);
     }
   },
 
@@ -340,18 +273,15 @@ module.exports = yeoman.Base.extend({
       actions.installDeps.call(this);
     }
   },
+
   end: {
+
     addDefaultServices: function() {
       if (this.options.bluemix) {
-        var options = {
-          bluemix: true,
-          enableAutoScaling: this.enableAutoScaling,
-          enableAppMetrics: this.enableAppMetrics,
-          destDir: this.destinationRoot(),
-        };
-        Workspace.addDefaultServices(options);
+        bluemix.addDefaultServices.call(this);
       }
     },
+
     printNextSteps: function() {
       if (!this.options.initBluemix) {
         if (this.options.skipNextSteps) return;
