@@ -37,6 +37,20 @@ describe('loopback:app generator', function() {
     'client/README.md',
   ];
 
+  var EXPECTED_BLUEMIX_FILES = [
+    '.bluemix/datasources-config.json',
+    '.bluemix/deploy.json',
+    '.bluemix/pipeline.yml',
+    '.bluemix/toolchain.yml',
+
+    'server/datasources.bluemix.js',
+
+    '.cfignore',
+    '.dockerignore',
+    'Dockerfile',
+    'manifest.yml',
+  ];
+
   it('creates expected files', function(done) {
     var gen = givenAppGenerator();
 
@@ -48,6 +62,32 @@ describe('loopback:app generator', function() {
     gen.options['skip-install'] = true;
     gen.run(function() {
       ygAssert.file(EXPECTED_PROJECT_FILES);
+      done();
+    });
+  });
+
+  it('creates expected Bluemix files', function(done) {
+    var gen = givenAppGenerator();
+
+    helpers.mockPrompt(gen, {
+      name: 'test-app',
+      template: 'api-server',
+      appMemory: 512,
+      appInstances: 1,
+      appDomain: 'mybluemix.net',
+      appHost: 'test-app',
+      appDiskQuota: 1024,
+      enableDocker: 'yes',
+      enableToolchain: 'yes',
+      enableAutoScaling: 'yes',
+      enableAppMetrics: 'yes',
+    });
+
+    gen.options['skip-install'] = true;
+    gen.options['bluemix'] = true;
+
+    gen.run(function() {
+      ygAssert.file(EXPECTED_PROJECT_FILES.concat(EXPECTED_BLUEMIX_FILES));
       done();
     });
   });
