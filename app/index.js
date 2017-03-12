@@ -239,25 +239,25 @@ module.exports = yeoman.Base.extend({
 
   configurePrompt: function() {
     if (this.options.bluemix) {
-      bluemix.configurePrompt.call(this);
+      return bluemix.configurePrompt.call(this);
     }
   },
 
   promptBluemixSettings: function() {
     if (this.options.bluemix) {
-      bluemix.promptSettings.call(this);
+      return bluemix.promptSettings.call(this);
     }
   },
 
   generateBluemixFiles: function() {
     if (this.options.bluemix) {
-      bluemix.generateFiles.call(this);
+      return bluemix.generateFiles.call(this);
     }
   },
 
   promptDefaultServices: function() {
     if (this.options.bluemix) {
-      bluemix.promptDefaultServices.call(this);
+      return bluemix.promptDefaultServices.call(this);
     }
   },
 
@@ -278,7 +278,7 @@ module.exports = yeoman.Base.extend({
 
     addDefaultServices: function() {
       if (this.options.bluemix) {
-        bluemix.addDefaultServices.call(this);
+        return bluemix.addDefaultServices.call(this);
       }
     },
 
