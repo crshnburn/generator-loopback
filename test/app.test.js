@@ -204,8 +204,8 @@ describe('loopback:app generator', function() {
       gen.options['bluemix'] = true;
 
       gen.run(function() {
-        ygAssert.fileContent('./manifest.yml', fs.readFileSync(path.join(__dirname, 'fixtures', 'manifest.yml'), 'utf8'));
         ygAssert.file(EXPECTED_PROJECT_FILES.concat(EXPECTED_BLUEMIX_FILES));
+        ygAssert.fileContent('./manifest.yml', fs.readFileSync(path.join(__dirname, 'fixtures', 'manifest.yml'), 'utf8'));
         done();
       });
     });
